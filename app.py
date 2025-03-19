@@ -1,12 +1,30 @@
 import streamlit as st
 import tempfile
 import os
-import subprocess
 import sys
+
+# Load whisper model at startup
+@st.cache_resource
+def load_whisper_model():
+    try:
+        import whisper
+        return whisper.load_model("small")
+    except ImportError:
+        st.error("Whisper module not found. Please ensure it's installed correctly.")
+        st.stop()
+    except Exception as e:
+        st.error(f"Error loading Whisper model: {str(e)}")
+        st.stop()
 
 def main():
     st.title("Audio Transcription with Whisper")
     st.write("Upload an audio file to transcribe it using OpenAI's Whisper model.")
+    
+    # Load model at startup
+    with st.spinner("Loading Whisper model... This may take a moment."):
+        model = load_whisper_model()
+    
+    st.success("Whisper model loaded and ready!")
     
     # File uploader
     uploaded_file = st.file_uploader("Choose an audio file", type=['mp3', 'wav', 'm4a', 'flac', 'ogg', 'aac'])
@@ -24,19 +42,11 @@ def main():
         # Transcribe button
         if st.button('Transcribe Audio'):
             try:
-                with st.spinner("Loading Whisper model and transcribing audio... This may take a while for the first run."):
-                    # Use a separate process to run whisper to avoid memory issues
-                    st.info("Starting transcription process...")
-                    
-                    # Import whisper here to avoid loading it unnecessarily
+                with st.spinner("Transcribing audio..."):
                     try:
-                        import whisper
-                        model = whisper.load_model("small")
+                        # Use the already loaded model
                         result = model.transcribe(tmp_file_path)
                         transcription = result["text"]
-                    except ImportError:
-                        st.error("Whisper module not found. Please ensure it's installed correctly.")
-                        st.stop()
                     except Exception as e:
                         st.error(f"Error during transcription: {str(e)}")
                         st.stop()
